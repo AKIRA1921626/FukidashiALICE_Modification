@@ -1,4 +1,4 @@
-Copyright <2025> <AKIRA>
+Copyright \<2025> \<AKIRA>
 
 # 「フキダシアリス改変」について
 
