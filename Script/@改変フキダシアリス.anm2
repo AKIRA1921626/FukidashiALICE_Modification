@@ -1,0 +1,754 @@
+--[[------------------------------------------------------------------------------------------------
+====================================================================================================
+
+とあるゲームのイベントシーン吹き出し再現スクリプト
+配布 >> https://tiribro.github.io/FukidashiALICE.anm/
+つくったひと >> https://twitter.com/tiribro
+
+Q:ナニコレ？
+A:Aviutlの拡張編集で、アニメーション効果に登録できるスクリプト
+  拡張編集の導入やフォルダ構造について詳しくは調べてください
+
+Q:ナニスルノコレ？
+A:とあるゲームのイベントシーンっぽいフキダシをサクッとつくる
+
+>> FAフレーム3x3
+    テキストに吹き出しっぽい背景フレームをつける。画像ファイルを指定してください
+    画像を3x3に分割して、オブジェクトのサイズにあわせてイイ感じに伸ばします
+    注意）テキストの「文字毎に個別オブジェクト」とは共存できません。
+
+>> FAピン
+    吹き出しについてる三角の出っ張りを雑につけます
+
+>> FAシャドウ
+    ふわっとした影が背後に生成されます
+    いくつかのフェードインアウト機能と、影の位置もオフセットできるようにしておきました
+
+====================================================================================================
+------------------------------------------------------------------------------------------------]]--
+
+--[[------------------------------------------------------------------------------------------------
+FAフレーム3x3（図形）
+
+図形を使って角の丸い四角形などを、背面に描画します。
+フキダシの背面フレームを構成するなどに使えます。
+------------------------------------------------------------------------------------------------]]--
+@改変FAフレーム3x3（図形）
+--track0:幅px,0,800,100,1
+--track1:高px,0,800,100,1
+--track2:枠px,0,512,25,1
+--track3:下地a,-100,100,100
+--dialog:図形/fig,figureFile="改変FAフレーム＠フキダシアリス";色/col,figureColor=0xffffff;
+--check0:PADDING MODE,1
+
+--初期状態の取得
+local screenW = obj.track0 --とりあえず絶対値モードで初期化
+local screenH = obj.track1 --とりあえず絶対値モードで初期化
+if obj.check0 then
+  --既存サイズへの拡大値として指定。ゼロはプラスゼロ（オリジナルサイズ）
+  screenW = obj.w + obj.track0
+  screenH = obj.h + obj.track1
+end
+screenW = math.floor(screenW + 0.5)
+screenH = math.floor(screenH + 0.5)
+local screenTop = -screenH / 2
+local screenBottom = screenH / 2
+local screenLeft = -screenW / 2
+local screenRight = screenW / 2
+local dispBorderWidth = math.floor(math.min(obj.track2, math.min(screenW, screenH) / 2))
+local baseImage = {
+  isBehind = (obj.track3 <= -0.01),
+  isOver = (0.01 <= obj.track3) and (0 < (obj.w * obj.h)),
+  alpha = math.abs(obj.track3 / 100)
+}
+obj.copybuffer("cache:bkup", "obj") --現objを一旦保存
+
+-- generate filled figure
+obj.load("figure", figureFile)
+obj.setoption("drawtarget", "tempbuffer", obj.w, obj.h)
+obj.effect("単色化",
+  "強さ", "100",
+  "輝度を保持する", "0",
+  "color", figureColor or 0xffffff
+)
+obj.draw()
+obj.copybuffer("cache:figu", "tmp") --現objを一旦保存
+
+-- clear canvas
+obj.setoption("drawtarget", "tempbuffer", screenW, screenH)
+
+-- check behind draw
+if (baseImage.isBehind) then
+  obj.copybuffer("obj", "cache:bkup") --元のobjをリロード
+  obj.draw(obj.ox,obj.oy,obj.oz,1,baseImage.alpha)
+end
+
+-- load colored figure image
+obj.copybuffer("obj", "cache:figu")
+
+-- begin drawpolygon
+local alpha = 1
+local u0 = 0
+local u1 = obj.w / 3
+local v0 = 0
+local v2 = obj.h / 3
+obj.drawpoly(screenLeft, screenTop, 0,
+  screenLeft + dispBorderWidth, screenTop, 0,
+  screenLeft + dispBorderWidth, screenTop + dispBorderWidth , 0,
+  screenLeft, screenTop +dispBorderWidth, 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+
+u0 = obj.w / 3
+u1 = 2 * obj.w / 3
+v0 = 0
+v2 = obj.h / 3
+obj.drawpoly(screenLeft + dispBorderWidth , screenTop, 0,
+  screenRight - dispBorderWidth , screenTop, 0,
+  screenRight - dispBorderWidth, screenTop + dispBorderWidth, 0,
+  screenLeft + dispBorderWidth , screenTop +dispBorderWidth, 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+u0 = 2 * obj.w / 3
+u1 = obj.w
+v0 = 0
+v2 = obj.h / 3
+obj.drawpoly(screenRight - dispBorderWidth, screenTop, 0,
+  screenRight, screenTop, 0,
+  screenRight, screenTop + dispBorderWidth, 0,
+  screenRight - dispBorderWidth, screenTop +dispBorderWidth , 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+u0 = 0
+u1 = obj.w / 3
+v0 = obj.h / 3
+v2 = 2 * obj.h / 3
+obj.drawpoly(screenLeft, screenTop + dispBorderWidth, 0,
+  screenLeft + dispBorderWidth, screenTop + dispBorderWidth, 0,
+  screenLeft + dispBorderWidth, screenBottom - dispBorderWidth, 0,
+  screenLeft, screenBottom - dispBorderWidth, 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+u0 = obj.w / 3
+u1 = 2 * obj.w / 3
+v0 = obj.h / 3
+v2 = 2 * obj.h / 3
+obj.drawpoly(screenLeft + dispBorderWidth, screenTop + dispBorderWidth, 0,
+  screenRight - dispBorderWidth, screenTop + dispBorderWidth, 0,
+  screenRight - dispBorderWidth, screenBottom - dispBorderWidth, 0,
+  screenLeft + dispBorderWidth, screenBottom - dispBorderWidth, 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+u0 = 2 * obj.w / 3
+u1 = obj.w
+v0 = obj.h / 3
+v2 = 2 * obj.h / 3
+obj.drawpoly(screenRight - dispBorderWidth, screenTop + dispBorderWidth, 0,
+  screenRight, screenTop + dispBorderWidth, 0,
+  screenRight, screenBottom - dispBorderWidth, 0,
+  screenRight - dispBorderWidth, screenBottom - dispBorderWidth, 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+u0 = 0
+u1 = obj.w / 3
+v0 = 2 * obj.h / 3
+v2 = obj.h
+obj.drawpoly(screenLeft, screenBottom - dispBorderWidth, 0,
+  screenLeft + dispBorderWidth, screenBottom - dispBorderWidth, 0,
+  screenLeft + dispBorderWidth, screenBottom, 0,
+  screenLeft, screenBottom, 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+u0 = obj.w / 3
+u1 = 2 * obj.w / 3
+v0 = 2 * obj.h / 3
+v2 = obj.h
+obj.drawpoly(screenLeft + dispBorderWidth, screenBottom - dispBorderWidth, 0,
+  screenRight - dispBorderWidth, screenBottom - dispBorderWidth, 0,
+  screenRight - dispBorderWidth, screenBottom, 0,
+  screenLeft + dispBorderWidth, screenBottom, 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+u0 = 2 * obj.w / 3
+u1 = obj.w
+v0 = 2 * obj.h / 3
+v2 = obj.h
+obj.drawpoly(screenRight - dispBorderWidth, screenBottom - dispBorderWidth, 0,
+  screenRight, screenBottom - dispBorderWidth, 0,
+  screenRight, screenBottom, 0,
+  screenRight - dispBorderWidth, screenBottom, 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+
+if (baseImage.isOver) then
+  obj.copybuffer("obj", "cache:bkup") --元のobjをリロード
+  obj.draw(obj.ox,obj.oy,obj.oz,1,baseImage.alpha)
+end
+obj.load("tempbuffer")
+obj.setoption("drawtarget","framebuffer")
+
+
+--[[------------------------------------------------------------------------------------------------
+FAフレーム3x3（画像）
+
+画像を使って角の丸い四角形などを、背面に描画します。
+図形に比べ模様のある画像も背面に貼れるので、よりUI的な装飾が可能です
+------------------------------------------------------------------------------------------------]]--
+@改変FAフレーム3x3（画像）
+--track0:幅px,0,800,100,1
+--track1:高px,0,800,100,1
+--track2:枠px,0,512,25,1
+--track3:下地a,-100,100,100
+--check0:PADDING MODE,1
+--file:
+
+--初期状態の取得
+local screenW = obj.track0 --とりあえず絶対値モードで初期化
+local screenH = obj.track1 --とりあえず絶対値モードで初期化
+if obj.check0 then
+  --既存サイズへの拡大値として指定。ゼロはプラスゼロ（オリジナルサイズ）
+  screenW = obj.w + obj.track0
+  screenH = obj.h + obj.track1
+end
+screenW = math.floor(screenW + 0.5)
+screenH = math.floor(screenH + 0.5)
+local screenTop = -screenH / 2
+local screenBottom = screenH / 2
+local screenLeft = -screenW / 2
+local screenRight = screenW / 2
+local dispBorderWidth = math.floor(math.min(obj.track2, math.min(screenW, screenH) / 2))
+local base_image = {
+  isBehind = (obj.track3 <= -0.01),
+  isOver = (0.01 <= obj.track3) and (0 < (obj.w * obj.h)),
+  alpha = math.abs(obj.track3 / 100)
+}
+
+obj.setoption("drawtarget", "tempbuffer",
+  math.max(screenW, dispBorderWidth),
+  math.max(screenH, dispBorderWidth)
+)
+
+if (base_image.isBehind) then
+  obj.draw(obj.ox,obj.oy,obj.oz,1,base_image.alpha)
+elseif (base_image.isOver) then
+  obj.copybuffer("cache:bkup", "obj") --現objを一旦保存
+end
+obj.load(file)
+
+local alpha = 1
+local u0 = 0
+local u1 = obj.w / 3
+local v0 = 0
+local v2 = obj.h / 3
+obj.drawpoly(screenLeft, screenTop, 0,
+  screenLeft + dispBorderWidth, screenTop, 0,
+  screenLeft + dispBorderWidth, screenTop + dispBorderWidth , 0,
+  screenLeft, screenTop +dispBorderWidth, 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+
+u0 = obj.w / 3
+u1 = 2 * obj.w / 3
+v0 = 0
+v2 = obj.h / 3
+obj.drawpoly(screenLeft + dispBorderWidth , screenTop, 0,
+  screenRight - dispBorderWidth , screenTop, 0,
+  screenRight - dispBorderWidth, screenTop + dispBorderWidth, 0,
+  screenLeft + dispBorderWidth , screenTop +dispBorderWidth, 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+u0 = 2 * obj.w / 3
+u1 = obj.w
+v0 = 0
+v2 = obj.h / 3
+obj.drawpoly(screenRight - dispBorderWidth, screenTop, 0,
+  screenRight, screenTop, 0,
+  screenRight, screenTop + dispBorderWidth, 0,
+  screenRight - dispBorderWidth, screenTop +dispBorderWidth , 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+u0 = 0
+u1 = obj.w / 3
+v0 = obj.h / 3
+v2 = 2 * obj.h / 3
+obj.drawpoly(screenLeft, screenTop + dispBorderWidth, 0,
+  screenLeft + dispBorderWidth, screenTop + dispBorderWidth, 0,
+  screenLeft + dispBorderWidth, screenBottom - dispBorderWidth, 0,
+  screenLeft, screenBottom - dispBorderWidth, 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+u0 = obj.w / 3
+u1 = 2 * obj.w / 3
+v0 = obj.h / 3
+v2 = 2 * obj.h / 3
+obj.drawpoly(screenLeft + dispBorderWidth, screenTop + dispBorderWidth, 0,
+  screenRight - dispBorderWidth, screenTop + dispBorderWidth, 0,
+  screenRight - dispBorderWidth, screenBottom - dispBorderWidth, 0,
+  screenLeft + dispBorderWidth, screenBottom - dispBorderWidth, 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+u0 = 2 * obj.w / 3
+u1 = obj.w
+v0 = obj.h / 3
+v2 = 2 * obj.h / 3
+obj.drawpoly(screenRight - dispBorderWidth, screenTop + dispBorderWidth, 0,
+  screenRight, screenTop + dispBorderWidth, 0,
+  screenRight, screenBottom - dispBorderWidth, 0,
+  screenRight - dispBorderWidth, screenBottom - dispBorderWidth, 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+u0 = 0
+u1 = obj.w / 3
+v0 = 2 * obj.h / 3
+v2 = obj.h
+obj.drawpoly(screenLeft, screenBottom - dispBorderWidth, 0,
+  screenLeft + dispBorderWidth, screenBottom - dispBorderWidth, 0,
+  screenLeft + dispBorderWidth, screenBottom, 0,
+  screenLeft, screenBottom, 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+u0 = obj.w / 3
+u1 = 2 * obj.w / 3
+v0 = 2 * obj.h / 3
+v2 = obj.h
+obj.drawpoly(screenLeft + dispBorderWidth, screenBottom - dispBorderWidth, 0,
+  screenRight - dispBorderWidth, screenBottom - dispBorderWidth, 0,
+  screenRight - dispBorderWidth, screenBottom, 0,
+  screenLeft + dispBorderWidth, screenBottom, 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+u0 = 2 * obj.w / 3
+u1 = obj.w
+v0 = 2 * obj.h / 3
+v2 = obj.h
+obj.drawpoly(screenRight - dispBorderWidth, screenBottom - dispBorderWidth, 0,
+  screenRight, screenBottom - dispBorderWidth, 0,
+  screenRight, screenBottom, 0,
+  screenRight - dispBorderWidth, screenBottom, 0,
+  u0,v0,u1,v0,u1,v2,u0,v2,alpha
+)
+
+if (base_image.isOver) then
+  obj.copybuffer("obj", "cache:bkup") --元のobjをリロード
+  obj.draw(obj.ox,obj.oy,obj.oz,1,base_image.alpha)
+end
+
+obj.load("tempbuffer")
+obj.setoption("drawtarget","framebuffer")
+
+--[[------------------------------------------------------------------------------------------------
+FAピン（図形）
+
+図形を使って三角のピンを、イメージの４辺のいずれかに配置します
+------------------------------------------------------------------------------------------------]]--
+@改変FAピン（図形）
+--track0:位置,-400,400,50,0.01
+--track1:幅px,-1,512,-1,1
+--track2:高px,-1,512,-1,1
+--track3:曲げpx,-512,512,0,1
+--dialog:図形/fig,figureFile="改変FAピン＠フキダシアリス";色/col,figureColor=0xffffff;
+--check@mage_flip_offset:曲げ反転,0
+--check@flipX:左右反転,0
+
+local tPos = obj.track0
+local ofs_edge = obj.track3
+local ofs_x = 0
+local ofs_y = 0
+local screen = {
+  w = math.floor(obj.w), h = math.floor(obj.h),
+  left = -obj.w / 2, right = obj.w / 2,
+  top = -obj.h / 2, bottom = obj.h / 2,
+}
+obj.copybuffer("cache:bkup", "obj") --現objを一旦保存
+
+-- generate filled figure
+obj.load("figure", figureFile)
+obj.setoption("drawtarget", "tempbuffer", obj.w, obj.h)
+obj.effect("単色化",
+  "強さ", "100",
+  "輝度を保持する", "0",
+  "color", figureColor or 0xffffff
+)
+obj.draw()
+obj.copybuffer("cache:figu", "tmp") --現objを一旦保存
+
+local arrow = {
+  w = math.floor(obj.track1),
+  h = math.floor(obj.track2),
+}
+if arrow.w < 0 then arrow.w = obj.w end
+if arrow.h < 0 then arrow.h = obj.h end
+local u0 = 0
+local u1 = obj.w
+local v0 = 0
+local v2 = obj.h
+
+if mage_flip_offset ~= 0 then
+  ofs_edge = -ofs_edge -- 曲げ反転がチェックされたときに ofs_edge を符号反転
+end
+
+if flipX ~= 0 then
+  u0 = obj.w
+  u1 = 0 -- 左右反転がチェックされたときに u0とu1の値を反転
+end
+
+obj.setoption("drawtarget", "tempbuffer",
+  screen.w + (arrow.h + math.abs(ofs_edge)) * 2,
+  screen.h + (arrow.h + math.abs(ofs_edge)) * 2
+)
+obj.copybuffer("obj", "cache:bkup") --拡大した一時バッファに元のobjをリロード
+obj.draw() --元のobjを復元draw
+obj.copybuffer("obj", "cache:figu") --着色済みピンを再ロード
+
+-- tPosの値に基づいてピンの描画位置と向きを決定
+if tPos >= 0 and tPos <= 100 then -- 上辺 (左から右へ)
+  ofs_x = screen.left + screen.w * tPos / 100.0
+  obj.drawpoly(
+    ofs_x - arrow.w / 2 + ofs_edge, screen.top - arrow.h + 1, 0,
+    ofs_x + arrow.w / 2 + ofs_edge, screen.top - arrow.h + 1, 0,
+    ofs_x + arrow.w / 2, screen.top + 1, 0,
+    ofs_x - arrow.w / 2, screen.top + 1, 0,
+    u0,v0,u1,v0,u1,v2,u0,v2
+  )
+elseif tPos > 100 and tPos <= 200 then -- 右辺 (上から下へ)
+  ofs_y = screen.top + screen.h * (tPos - 100) / 100.0
+  obj.drawpoly(
+    screen.right + arrow.h - 1, ofs_y - arrow.w / 2 + ofs_edge, 0,
+    screen.right + arrow.h - 1, ofs_y + arrow.w / 2 + ofs_edge, 0,
+    screen.right - 1, ofs_y + arrow.w / 2, 0,
+    screen.right - 1, ofs_y - arrow.w / 2, 0,
+    u0,v0,u1,v0,u1,v2,u0,v2
+  )
+elseif tPos > 200 and tPos <= 300 then -- 下辺 (右から左へ)
+  ofs_x = screen.right - screen.w * (tPos - 200) / 100.0
+  obj.drawpoly(
+    ofs_x - arrow.w / 2 - ofs_edge, screen.bottom + arrow.h - 1, 0,
+    ofs_x + arrow.w / 2 - ofs_edge, screen.bottom + arrow.h - 1, 0,
+    ofs_x + arrow.w / 2, screen.bottom - 1, 0,
+    ofs_x - arrow.w / 2, screen.bottom - 1, 0,
+    u1,v0,u0,v0,u0,v2,u1,v2
+  )
+elseif tPos > 300 and tPos <= 400 then -- 左辺 (下から上へ)
+  ofs_y = screen.bottom - screen.h * (tPos - 300) / 100.0
+  obj.drawpoly(
+    screen.left - arrow.h + 1, ofs_y - arrow.w / 2 - ofs_edge, 0,
+    screen.left - arrow.h + 1, ofs_y + arrow.w / 2 - ofs_edge, 0,
+    screen.left + 1, ofs_y + arrow.w / 2, 0,
+    screen.left + 1, ofs_y - arrow.w / 2, 0,
+    u1,v0,u0,v0,u0,v2,u1,v2
+  )
+-- tPosが負の値の場合の処理を追加 (反時計回り)
+elseif tPos < 0 and tPos >= -100 then -- 左辺 (上から下へ)
+  ofs_y = screen.top + screen.h * (math.abs(tPos)) / 100.0
+  obj.drawpoly(
+    screen.left - arrow.h + 1, ofs_y - arrow.w / 2 - ofs_edge, 0,
+    screen.left - arrow.h + 1, ofs_y + arrow.w / 2 - ofs_edge, 0,
+    screen.left + 1, ofs_y + arrow.w / 2, 0,
+    screen.left + 1, ofs_y - arrow.w / 2, 0,
+    u1,v0,u0,v0,u0,v2,u1,v2
+  )
+elseif tPos < -100 and tPos >= -200 then -- 下辺 (左から右へ)
+  ofs_x = screen.left + screen.w * (math.abs(tPos) - 100) / 100.0
+  obj.drawpoly(
+    ofs_x - arrow.w / 2 + ofs_edge, screen.bottom + arrow.h - 1, 0,
+    ofs_x + arrow.w / 2 + ofs_edge, screen.bottom + arrow.h - 1, 0,
+    ofs_x + arrow.w / 2, screen.bottom - 1, 0,
+    ofs_x - arrow.w / 2, screen.bottom - 1, 0,
+    u0,v0,u1,v0,u1,v2,u0,v2
+  )
+elseif tPos < -200 and tPos >= -300 then -- 右辺 (下から上へ)
+  ofs_y = screen.bottom - screen.h * (math.abs(tPos) - 200) / 100.0
+  obj.drawpoly(
+    screen.right + arrow.h - 1, ofs_y - arrow.w / 2 + ofs_edge, 0,
+    screen.right + arrow.h - 1, ofs_y + arrow.w / 2 + ofs_edge, 0,
+    screen.right - 1, ofs_y + arrow.w / 2, 0,
+    screen.right - 1, ofs_y - arrow.w / 2, 0,
+    u0,v0,u1,v0,u1,v2,u0,v2
+  )
+elseif tPos < -300 and tPos >= -400 then -- 上辺 (右から左へ)
+  ofs_x = screen.right - screen.w * (math.abs(tPos) - 300) / 100.0
+  obj.drawpoly(
+    ofs_x - arrow.w / 2 - ofs_edge, screen.top - arrow.h + 1, 0,
+    ofs_x + arrow.w / 2 - ofs_edge, screen.top - arrow.h + 1, 0,
+    ofs_x + arrow.w / 2, screen.top + 1, 0,
+    ofs_x - arrow.w / 2, screen.top + 1, 0,
+    u1,v0,u0,v0,u0,v2,u1,v2
+  )
+end
+
+obj.load("tempbuffer")
+obj.setoption("drawtarget", "framebuffer")
+
+--[[------------------------------------------------------------------------------------------------
+FAピン（画像）
+
+画像を使ってピンなどの装飾を、イメージの４辺のいずれかに配置します
+------------------------------------------------------------------------------------------------]]--
+@改変FAピン（画像）
+--track0:位置,-400,400,50,0.01
+--track1:幅px,-1,512,-1,1
+--track2:高px,-1,512,-1,1
+--track3:曲げpx,-512,512,0,1
+--check@mage_flip_offset:曲げ反転,0
+--check@flipX:左右反転,0
+--file:
+
+local tPos = obj.track0
+local ofs_edge = obj.track3
+local ofs_x = 0
+local ofs_y = 0
+local screen = {
+  w = math.floor(obj.w), h = math.floor(obj.h),
+  left = -obj.w / 2, right = obj.w / 2,
+  top = -obj.h / 2, bottom = obj.h / 2,
+}
+obj.copybuffer("cache:bkup", "obj") --現objを一旦保存
+
+obj.load(file) --画像サイズ取得のために一回ロードする
+local arrow = {
+  w = math.floor(obj.track1),
+  h = math.floor(obj.track2),
+}
+if arrow.w < 0 then arrow.w = obj.w end
+if arrow.h < 0 then arrow.h = obj.h end
+local u0 = 0
+local u1 = obj.w
+local v0 = 0
+local v2 = obj.h
+
+if mage_flip_offset ~= 0 then
+  ofs_edge = -ofs_edge -- 曲げ反転がチェックされたときに ofs_edge を符号反転
+end
+if flipX ~= 0 then
+  u0 = obj.w
+  u1 = 0 -- 左右反転がチェックされたときに u0とu1の値を反転
+end
+
+obj.setoption("drawtarget", "tempbuffer",
+  screen.w + (arrow.h + math.abs(ofs_edge)) * 2,
+  screen.h + (arrow.h + math.abs(ofs_edge)) * 2
+)
+obj.copybuffer("obj", "cache:bkup") --拡大した一時バッファに元のobjをリロード
+obj.draw() --元のobjを復元draw
+obj.load(file) --fileを再ロード
+
+-- tPosの値に基づいてピンの描画位置と向きを決定
+if tPos >= 0 and tPos <= 100 then -- 上辺 (左から右へ)
+  ofs_x = screen.left + screen.w * tPos / 100.0
+  obj.drawpoly(
+    ofs_x - arrow.w / 2 + ofs_edge, screen.top - arrow.h + 1, 0,
+    ofs_x + arrow.w / 2 + ofs_edge, screen.top - arrow.h + 1, 0,
+    ofs_x + arrow.w / 2, screen.top + 1, 0,
+    ofs_x - arrow.w / 2, screen.top + 1, 0,
+    u0,v0,u1,v0,u1,v2,u0,v2
+  )
+elseif tPos > 100 and tPos <= 200 then -- 右辺 (上から下へ)
+  ofs_y = screen.top + screen.h * (tPos - 100) / 100.0
+  obj.drawpoly(
+    screen.right + arrow.h - 1, ofs_y - arrow.w / 2 + ofs_edge, 0,
+    screen.right + arrow.h - 1, ofs_y + arrow.w / 2 + ofs_edge, 0,
+    screen.right - 1, ofs_y + arrow.w / 2, 0,
+    screen.right - 1, ofs_y - arrow.w / 2, 0,
+    u0,v0,u1,v0,u1,v2,u0,v2
+  )
+elseif tPos > 200 and tPos <= 300 then -- 下辺 (右から左へ)
+  ofs_x = screen.right - screen.w * (tPos - 200) / 100.0
+  obj.drawpoly(
+    ofs_x - arrow.w / 2 - ofs_edge, screen.bottom + arrow.h - 1, 0,
+    ofs_x + arrow.w / 2 - ofs_edge, screen.bottom + arrow.h - 1, 0,
+    ofs_x + arrow.w / 2, screen.bottom - 1, 0,
+    ofs_x - arrow.w / 2, screen.bottom - 1, 0,
+    u1,v0,u0,v0,u0,v2,u1,v2
+  )
+elseif tPos > 300 and tPos <= 400 then -- 左辺 (下から上へ)
+  ofs_y = screen.bottom - screen.h * (tPos - 300) / 100.0
+  obj.drawpoly(
+    screen.left - arrow.h + 1, ofs_y - arrow.w / 2 - ofs_edge, 0,
+    screen.left - arrow.h + 1, ofs_y + arrow.w / 2 - ofs_edge, 0,
+    screen.left + 1, ofs_y + arrow.w / 2, 0,
+    screen.left + 1, ofs_y - arrow.w / 2, 0,
+    u1,v0,u0,v0,u0,v2,u1,v2
+  )
+-- tPosが負の値の場合の処理を追加 (反時計回り)
+elseif tPos < 0 and tPos >= -100 then -- 左辺 (上から下へ)
+  ofs_y = screen.top + screen.h * (math.abs(tPos)) / 100.0
+  obj.drawpoly(
+    screen.left - arrow.h + 1, ofs_y - arrow.w / 2 - ofs_edge, 0,
+    screen.left - arrow.h + 1, ofs_y + arrow.w / 2 - ofs_edge, 0,
+    screen.left + 1, ofs_y + arrow.w / 2, 0,
+    screen.left + 1, ofs_y - arrow.w / 2, 0,
+    u1,v0,u0,v0,u0,v2,u1,v2
+  )
+elseif tPos < -100 and tPos >= -200 then -- 下辺 (左から右へ)
+  ofs_x = screen.left + screen.w * (math.abs(tPos) - 100) / 100.0
+  obj.drawpoly(
+    ofs_x - arrow.w / 2 + ofs_edge, screen.bottom + arrow.h - 1, 0,
+    ofs_x + arrow.w / 2 + ofs_edge, screen.bottom + arrow.h - 1, 0,
+    ofs_x + arrow.w / 2, screen.bottom - 1, 0,
+    ofs_x - arrow.w / 2, screen.bottom - 1, 0,
+    u0,v0,u1,v0,u1,v2,u0,v2
+  )
+elseif tPos < -200 and tPos >= -300 then -- 右辺 (下から上へ)
+  ofs_y = screen.bottom - screen.h * (math.abs(tPos) - 200) / 100.0
+  obj.drawpoly(
+    screen.right + arrow.h - 1, ofs_y - arrow.w / 2 + ofs_edge, 0,
+    screen.right + arrow.h - 1, ofs_y + arrow.w / 2 + ofs_edge, 0,
+    screen.right - 1, ofs_y + arrow.w / 2, 0,
+    screen.right - 1, ofs_y - arrow.w / 2, 0,
+    u0,v0,u1,v0,u1,v2,u0,v2
+  )
+elseif tPos < -300 and tPos >= -400 then -- 上辺 (右から左へ)
+  ofs_x = screen.right - screen.w * (math.abs(tPos) - 300) / 100.0
+  obj.drawpoly(
+    ofs_x - arrow.w / 2 - ofs_edge, screen.top - arrow.h + 1, 0,
+    ofs_x + arrow.w / 2 - ofs_edge, screen.top - arrow.h + 1, 0,
+    ofs_x + arrow.w / 2, screen.top + 1, 0,
+    ofs_x - arrow.w / 2, screen.top + 1, 0,
+    u1,v0,u0,v0,u0,v2,u1,v2
+  )
+end
+
+obj.load("tempbuffer")
+obj.setoption("drawtarget", "framebuffer")
+
+--[[------------------------------------------------------------------------------------------------
+FAシャドウ
+
+イメージの背面にオフセットした影を生成します
+------------------------------------------------------------------------------------------------]]--
+@改変FAシャドウ
+--track0:X,-800,800,0,0.01
+--track1:Y,-800,800,0,0.01
+--track2:透明度,0,100,100,0.01
+--check@_offSetShadow:本体をオフセットする,1
+--check@_isFill:最後に単色化する,1
+--color@_fillColor:単色化の色,0x000000
+--check@_enable1:縁取り1,1
+--track@_size1:縁取りのサイズ1,0,500,3
+--track@_blur1:縁取りぼかし1,0,100,100
+--color@_col1:縁取りの色1,0x000000
+--check@_enable2:縁取り2,0
+--track@_size2:縁取りのサイズ2,0,500,3
+--track@_blur2:縁取りぼかし2,0,100,100
+--color@_col2:縁取りの色2,0x000000
+--track@_alphaFadeInSec:ｱﾙﾌｧFadeIn[s],0,10,0,0.1
+--track@_alphaFadeOutSec:ｱﾙﾌｧFadeOut[s],0,10,0,0.1
+--track@_offsetFadeInSec:ｵﾌｾｯﾄFadeIn[s],0,10,0,0.1
+--track@_offsetFadeOutSec:ｵﾌｾｯﾄFadeOut[s],0,10,0,0.1
+
+function borderEffect(self)
+  if 0 <= self.size then
+    obj.effect("縁取り", "サイズ", self.size, "ぼかし", self.blur, "color", self.color)
+  end
+end
+
+function borderConfigObject(borderEnable, borderSize, borderBlur, borderColor)
+  local config = {
+    size = -1,
+    blur = borderBlur or 0,
+    color = borderColor or 0,
+    effect = borderEffect
+  }
+  if (borderEnable == 1) then
+    config.size = borderSize or -1
+  end
+  return config
+end
+
+local border1 = borderConfigObject(_enable1, _size1, _blur1, _col1)
+local border2 = borderConfigObject(_enable2, _size2, _blur2, _col2)
+local borderEx = (math.max(0, border1.size) + math.max(0, border2.size)) * math.sqrt(2)
+local screen = {
+  w = obj.w + math.abs(obj.track0) * 2 + borderEx,
+  h = obj.h + math.abs(obj.track1) * 2 + borderEx
+}
+
+local fader = {
+  alphaInSec = _alphaFadeInSec or 0,
+  alphaOutSec = _alphaFadeOutSec or 0,
+  offsetInSec = _offsetFadeInSec or 0,
+  offsetOutSec = _offsetFadeOutSec or 0,
+  alphaPosition = 1,
+  offsetPosition = 1,
+  time = obj.time,
+  remainTime = obj.totaltime - obj.time
+}
+
+if (fader.time < fader.alphaInSec) then
+  fader.alphaPosition = fader.time / fader.alphaInSec
+end
+
+if (fader.time < fader.offsetInSec) then
+  fader.offsetPosition = fader.time / fader.offsetInSec
+end
+
+if (fader.remainTime < fader.alphaOutSec )  then
+  fader.alphaPosition = fader.remainTime / fader.alphaOutSec
+end
+
+if (fader.remainTime < fader.offsetOutSec )  then
+  fader.offsetPosition = fader.remainTime / fader.offsetOutSec
+end
+
+fader.alphaPosition = fader.alphaPosition * obj.alpha
+
+local shadow = {
+  drawX = 0, drawY = 0, drawZ = 0, alpha = obj.track2 / 100
+}
+local currentImage = {
+  drawX = 0, drawY = 0, drawZ = 0
+}
+if (_offSetShadow ~= 0) then
+  currentImage.drawX = obj.track0
+  currentImage.drawY = obj.track1
+else
+  shadow.drawX = obj.track0
+  shadow.drawY = obj.track1
+end
+
+--retouch offset
+shadow.drawX = shadow.drawX * fader.offsetPosition
+shadow.drawY = shadow.drawY * fader.offsetPosition
+shadow.drawZ = shadow.drawZ * fader.offsetPosition
+currentImage.drawX = currentImage.drawX * fader.offsetPosition
+currentImage.drawY = currentImage.drawY * fader.offsetPosition
+currentImage.drawZ = currentImage.drawZ * fader.offsetPosition
+
+--draw start
+obj.copybuffer("cache:bkup", "obj") --back up first image
+obj.setoption("drawtarget", "tempbuffer", screen.w, screen.h)
+
+--filter to shadowing
+border1:effect()
+border2:effect()
+
+if _isFill == 1 then
+  obj.effect("単色化",
+    "強さ", 100,
+    "輝度を保持する", 0,
+    "color", _fillColor or 0x000000
+  )
+end
+
+obj.draw(shadow.drawX, shadow.drawY, shadow.drawZ)
+--treat alpha
+if shadow.alpha < 1 then
+  obj.copybuffer("obj", "tmp")                            --backup current canvas
+  obj.setoption("drawtarget", "tempbuffer", obj.w, obj.h) --clear canvas
+  obj.draw(0,0,0,1,shadow.alpha)                          --repaint with alpha
+end
+
+--redraw first-img on shadow
+obj.copybuffer("obj", "cache:bkup")
+obj.draw(currentImage.drawX, currentImage.drawY, currentImage.drawZ)
+
+--treat alpha
+if fader.alphaPosition < 1 then
+  obj.copybuffer("obj", "tmp")                            --backup current canvas
+  obj.setoption("drawtarget", "tempbuffer", obj.w, obj.h) --clear canvas
+  obj.draw(0,0,0,1,fader.alphaPosition)                   --repaint with alpha
+end
+
+--finish
+obj.load("tempbuffer")
+obj.setoption("drawtarget","framebuffer")
