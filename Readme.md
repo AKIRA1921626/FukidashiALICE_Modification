@@ -29,15 +29,15 @@ https://opensource.org/license/mit
 
 # 使用方法
 
-- Figureフォルダの中にある.svgは、
+- Figureフォルダの中にある.svgは、  
 C:\ProgramData\aviutl2\Figure  
 にコピーしてください。
 
-- Scriptフォルダの中にある.anm2は、
+- Scriptフォルダの中にある.anm2は、  
 C:\ProgramData\aviutl2\Script  
 にコピーしてください。
 
-- Aliasフォルダの中にある.objectは、
+- Aliasフォルダの中にある.objectは、  
 C:\ProgramData\aviutl2\Alias  
 にコピーしてください。
 
@@ -63,11 +63,11 @@ effect.name
 の名前が呼び出したいエフェクトや図形の名前と一致していなければ、Aviutl2ではエイリアスを開くことができません。  
 なので、エフェクトや図形の名前を変更し、なおかつ、エイリアスを呼び出したい場合、このファイルを書き換えるか、新たにエイリアスを作成する必要があります。  
 
-それぞれのC:\ProgramData\aviutl2というフォルダは、インストールタイプのAviutl2、非インストールタイプのAviutl2、のどちらでも、同じ場所にフォルダが作成されることとなります。  
-
 - C:\ProgramDataは、隠しフォルダとなっているため、設定を行わなければ通常は見ることができません。  
 エクスプローラー>表示>表示>隠しファイル  
 にチェックを入れる事で見ることができます。  
+
+それぞれのC:\ProgramData\aviutl2というフォルダは、インストールタイプのAviutl2、非インストールタイプのAviutl2、のどちらでも、同じ場所にフォルダが作成されることとなります。  
 
 ------
 
