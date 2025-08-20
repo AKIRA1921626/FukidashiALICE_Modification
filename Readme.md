@@ -1,4 +1,5 @@
-Copyright \<2025> \<AKIRA>
+Copyright \<2025> \<AKIRA>  
+https://x.com/AKIRA1921626
 
 # 「フキダシアリス改変」について
 
