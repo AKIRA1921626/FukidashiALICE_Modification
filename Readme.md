@@ -5,7 +5,7 @@ https://x.com/AKIRA1921626
 
 このスクリプト、およびファイルは、
 チリブロッコ氏制作の「フキダシアリス」（以下、オリジナル版）がAviutl2で使用できなかったため、これを、Aviutl2用に改変して作成したものとなります。
-オリジナル版は以下のURLで公開されています。
+オリジナル版は以下のURLで公開されています。  
 https://tiribro.github.io/FukidashiALICE.anm/
 
 主な改変内容は以下の通りです。
@@ -21,7 +21,7 @@ https://tiribro.github.io/FukidashiALICE.anm/
 
 オリジナル版の製作者であるチリブロッコ氏に、この場を借りて深く感謝申し上げます。
 
-このスクリプトはMITライセンスに従い無料無保証で公開されています。
+このスクリプトはMITライセンスに従い無料無保証で公開されています。  
 https://opensource.org/license/mit
 
 -----
